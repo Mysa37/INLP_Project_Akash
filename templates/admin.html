@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Header -->
+    <header class="bg-red-600 text-white text-center py-6">
+        <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+        <p class="text-lg mt-2">Manage users and access chatbot functionalities.</p>
+        <form action="{{ url_for('logout') }}" method="POST">
+            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500">
+                Logout
+            </button>
+        </form>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Registered Users</h2>
+
+        <table class="table-auto w-full border-collapse border border-gray-200">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="border border-gray-300 px-4 py-2 text-left">ID</th>
+                    <th class="border border-gray-300 px-4 py-2 text-left">Username</th>
+                    <th class="border border-gray-300 px-4 py-2 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="border border-gray-300 px-4 py-2">{{ user.id }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ user.username }}</td>
+                    <td class="border border-gray-300 px-4 py-2">
+                        {% if user.username != 'admin' %}
+                        <form action="{{ url_for('remove_user', user_id=user.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-500">
+                                Remove
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-gray-500">Admin</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+
+        <!-- Chatbot Section -->
+        <div class="mt-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Chatbot Hub</h2>
+            <p class="text-gray-600">
+                You can interact with the Dialogflow and Mistral AI chatbots from here as well.
+            </p>
+
+            <!-- Buttons to Open Chatbots -->
+            <div class="flex justify-center mt-6 space-x-4">
+                <button onclick="showDialogflow()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 text-lg">
+                    Open Dialogflow
+                </button>
+                <button onclick="showMistral()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 text-lg">
+                    Open Mistral
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chatbots (reuse the same chat interface from `index.html`) -->
+    <div id="dialogflow-box" class="fixed bottom-5 right-5 w-96 bg-white shadow-lg rounded-lg overflow-hidden hidden">
+        <div class="bg-blue-600 text-white px-4 py-2 flex justify-between items-center">
+            <h3 class="text-lg font-bold">Dialogflow Chatbot</h3>
+            <button onclick="toggleDialogflow()" class="text-white hover:text-gray-200">&times;</button>
+        </div>
+        <iframe class="w-full h-96" src="https://console.dialogflow.com/api-client/demo/embedded/0bea8226-c580-4c27-a2ed-6e61280cda43"></iframe>
+    </div>
+
+    
+    <div id="mistral-box" class="fixed bottom-5 right-5 w-96 bg-white shadow-lg rounded-lg overflow-hidden hidden">
+        <div class="bg-green-600 text-white px-4 py-2 flex justify-between items-center">
+            <h3 class="text-lg font-bold">Mistral AI Chatbot</h3>
+            <button onclick="toggleMistral()" class="text-white hover:text-gray-200">&times;</button>
+        </div>
+        <div class="p-4">
+            <div id="mistral-messages" class="overflow-y-auto h-60 mb-4 border border-gray-200 rounded-lg p-2 bg-gray-50">
+                <!-- Chat messages will be displayed here -->
+            </div>
+            <div class="flex">
+                <input id="mistral-input" type="text" class="flex-grow border border-gray-300 rounded-lg p-2" placeholder="Type your message...">
+                <button onclick="sendMistralMessage()" class="ml-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-500">
+                    Send
+                </button>
+            </div>
+        </div>
+    
+    </div>
+
+
+    <!-- JavaScript -->
+    <script>
+        // Chatbot logic (same as in `index.html`)
+        const dialogflowBox = document.getElementById('dialogflow-box');
+        const mistralBox = document.getElementById('mistral-box');
+        const mistralMessages = document.getElementById('mistral-messages');
+
+        function showDialogflow() {
+            dialogflowBox.classList.remove('hidden');
+            mistralBox.classList.add('hidden');
+        }
+
+        function showMistral() {
+            mistralBox.classList.remove('hidden');
+            dialogflowBox.classList.add('hidden');
+        }
+
+        function toggleDialogflow() {
+            dialogflowBox.classList.add('hidden');
+        }
+
+        function toggleMistral() {
+            mistralBox.classList.add('hidden');
+        }
+
+        async function sendMistralMessage() {
+            const userInput = document.getElementById('mistral-input').value.trim();
+            if (userInput) {
+                appendMistralMessage(userInput, 'user');
+                document.getElementById('mistral-input').value = '';
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userInput }),
+                });
+
+                const data = await response.json();
+                appendMistralMessage(data.message, 'bot');
+            }
+        }
+
+        function appendMistralMessage(message, type) {
+            const messageElement = document.createElement('div');
+            messageElement.className = type === 'user' ? 'text-right text-blue-600' : 'text-left text-green-600';
+            messageElement.textContent = message;
+            mistralMessages.appendChild(messageElement);
+            mistralMessages.scrollTop = mistralMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>

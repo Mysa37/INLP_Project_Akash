@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white text-center py-6">
+        <h1 class="text-3xl font-bold">Sentiment Analysis</h1>
+        <p class="text-lg mt-2">Analyze the sentiment of your text using our AI model!</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Analyze Your Text</h2>
+        <p class="text-gray-600 leading-relaxed">
+            Enter your text in the box below and click the "Analyze Sentiment" button to see the sentiment prediction.
+        </p>
+        <div class="flex justify-center mt-6 space-x-4">
+            {% if session.get('user') %}
+            <a href="/" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 text-lg">
+                Dialogflow Chatbot
+            </a> 
+                <a href="/" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 text-lg">
+                    Mistral AI Chatbot
+                </a>  
+                <a href="/sentiment" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 text-lg">
+                    Sentiment Analysis
+                </a>                
+                <p class="mt-4 text-gray-600">Welcome, {{ session['user'] }}! <a href="{{ url_for('logout') }}" class="text-blue-600 hover:text-blue-800">Logout</a></p>
+            {% else %}
+                <p class="mt-4 text-gray-600">Please <a href="{{ url_for('login') }}" class="text-blue-600 hover:text-blue-800">Login</a> to access the chatbots.</p>
+            {% endif %}
+        </div>
+
+        <!-- Sentiment Analysis Form -->
+        <div class="mt-6">
+            <textarea id="sentiment-input" 
+                      class="w-full border border-gray-300 rounded-lg p-4 text-gray-600" 
+                      rows="5" 
+                      placeholder="Type your text here..."></textarea>
+            <button onclick="analyzeSentiment()" 
+                    class="mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-500 text-lg">
+                Analyze Sentiment
+            </button>
+        </div>
+
+        <!-- Sentiment Analysis Result -->
+        <div id="sentiment-result" class="mt-6 p-4 bg-gray-50 border border-gray-300 rounded-lg hidden">
+            <h3 class="text-lg font-bold text-gray-800">Analysis Result</h3>
+            <p id="sentiment-output" class="mt-2 text-gray-600"></p>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        async function analyzeSentiment() {
+            const inputText = document.getElementById('sentiment-input').value.trim();
+            if (!inputText) {
+                alert("Please enter some text for analysis.");
+                return;
+            }
+
+            // Send text to the server for sentiment analysis
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: inputText }),
+            });
+
+            const data = await response.json();
+            const resultDiv = document.getElementById('sentiment-result');
+            const outputParagraph = document.getElementById('sentiment-output');
+
+            if (data.error) {
+                outputParagraph.textContent = `Error: ${data.error}`;
+            } else {
+                outputParagraph.textContent = 
+                    `Sentiment: ${data.sentiment}, Confidence: ${(data.confidence * 100).toFixed(2)}%`;
+            }
+
+            resultDiv.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
